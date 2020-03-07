@@ -7,6 +7,8 @@ import { RulesserviceService } from './rulesservice.service';
 import { RuledialogComponent } from '../ruledialog/ruledialog.component';
 import { EdgedialogComponent } from '../edgedialog/edgedialog.component';
 import {MatDialog, MatDialogConfig} from '@angular/material/dialog';
+import { map, some } from 'lodash';
+import { RULEENGINE_DATA } from 'src/constants/dummyData';
 
 @Component({
   selector: 'app-rulepage',
@@ -22,6 +24,7 @@ export class RulepageComponent implements  OnInit, AfterViewInit {
 
   constructor(private ruleService: RulesserviceService, private dialog: MatDialog) {
     this.enrichmentTypesModel.nodes.push(...ENRICHMENT_NODE_DATA);
+    //this.initData(); //show saved data
   }
 
   flowchartConstants = FlowchartConstants;
@@ -143,6 +146,23 @@ export class RulepageComponent implements  OnInit, AfterViewInit {
     const dialogRef = this.dialog.open(EdgedialogComponent, edgeDialogConfig);
 
     dialogRef.afterClosed().subscribe(result => {
+      map(this.model.nodes, (node: any) => {
+        const isSourceIdMatches = some(node.connectors, {id: edge.source});
+        const isDestinationIdMatches = some(node.connectors, {id: edge.destination});
+        if (isSourceIdMatches) {
+          edge.source_id = node.id;
+          edge.source_condition = node.conditions;
+          edge.source_type = node.type;
+        }
+
+        if (isDestinationIdMatches) {
+          edge.destination_id = node.id;
+          edge.destination_type = node.type;
+          if (node.type === 'action') {
+            edge.destination_action = node.name;
+          }
+        }
+      });
       edge.label = result;
     });
 
@@ -155,10 +175,10 @@ export class RulepageComponent implements  OnInit, AfterViewInit {
         id: (this.nextConnectorID++) + '',
         type: FlowchartConstants.leftConnectorType
       },
-      {
-        id: (this.nextConnectorID++) + '',
-        type: FlowchartConstants.rightConnectorType
-      }
+      // {
+      //   id: (this.nextConnectorID++) + '',
+      //   type: FlowchartConstants.rightConnectorType
+      // } //enable this code if you need the actions to have right connector
     ];
     this.model.nodes.push(node);
   }
@@ -184,20 +204,26 @@ export class RulepageComponent implements  OnInit, AfterViewInit {
         y: 75 * (index + 1),
         color: '#DEC111',
         icon: 'flash_on',
+        type: 'action',
         connectors: [
           {
             type: FlowchartConstants.leftConnectorType,
             id: (index * 2 + 1) + ''
           },
-          {
-            type: FlowchartConstants.rightConnectorType,
-            id: (index * 2 + 2) + ''
-          }
+          // {
+          //   type: FlowchartConstants.rightConnectorType,
+          //   id: (index * 2 + 2) + ''
+          // } //enable this code if you need the actions to have right connector
         ]
       };
 
       this.actionTypesModel.nodes.push(actionNode);
     });
+  }
+
+  initData() {
+    this.model.nodes.push(...RULEENGINE_DATA.nodes);
+    this.model.edges.push(...RULEENGINE_DATA.edges);
   }
 
   @HostListener('keydown.control.a', ['$event'])
@@ -219,6 +245,7 @@ export class RulepageComponent implements  OnInit, AfterViewInit {
 
   saveRule() {
     console.log('save rule got called', this.model);
+    // console.log('stringified data', JSON.stringify(this.model));
   }
 
 }
